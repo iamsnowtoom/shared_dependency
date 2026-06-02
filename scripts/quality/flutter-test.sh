@@ -45,7 +45,7 @@ while IFS= read -r pubspec_dir; do
   test_output="$(cd "$pubspec_dir" && $TEST_CMD 2>&1 || true)"
   elapsed=$(( $(date +%s) - t0 ))
 
-  passed="$(echo "$test_output" | grep -oE '[0-9]+ passed' | grep -oE '[0-9]+' | tail -1 || true)"
+  passed="$(echo "$test_output" | grep -oE '[0-9]+ passed' | grep -oE '[0-9]+' | tail -1 || echo "$(echo "$test_output" | grep -oE '\+[0-9]+' | tail -1 | tr -d '+' || true)")"
   failed="$(echo "$test_output" | grep -oE '[0-9]+ failed' | grep -oE '[0-9]+' | tail -1 || true)"
 
   if echo "$test_output" | grep -qE "All tests passed|[0-9]+ passed" && [[ -z "$failed" ]]; then
