@@ -28,9 +28,6 @@ done
 
 if command -v very_good >/dev/null 2>&1; then
   TEST_CMD="very_good test --coverage"
-elif command -v dart >/dev/null 2>&1; then
-  dart pub global activate very_good_cli >/dev/null 2>&1
-  TEST_CMD="very_good test --coverage"
 else
   TEST_CMD="flutter test --coverage"
 fi
