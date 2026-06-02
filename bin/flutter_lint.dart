@@ -1,9 +1,17 @@
 import 'dart:io';
+import 'dart:isolate';
 
 void main(List<String> args) async {
-  final script = File(Platform.script.toFilePath());
-  final scriptRoot = script.parent.parent.path;
-  final lintSh = '$scriptRoot/scripts/quality/flutter-lint.sh';
+  final packageUri = await Isolate.resolvePackageUri(
+    Uri.parse('package:shared_dependency/'),
+  );
+  if (packageUri == null) {
+    stderr.writeln('Cannot resolve package:shared_dependency/');
+    exit(1);
+  }
+
+  final pkgRoot = Directory.fromUri(packageUri).parent.path;
+  final lintSh = '$pkgRoot/scripts/quality/flutter-lint.sh';
 
   if (!File(lintSh).existsSync()) {
     stderr.writeln('flutter-lint.sh not found at: $lintSh');
