@@ -1,0 +1,5 @@
+name: shared_dependency
+description: Shared quality scripts for Flutter monorepos.
+version: 0.1.0
+environment:
+  sdk: ">=3.2.6 <4.0.0"
