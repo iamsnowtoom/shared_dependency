@@ -21,6 +21,10 @@ void main(List<String> args) async {
   final proc = await Process.start(
     'bash', [lintSh, ...args],
     mode: ProcessStartMode.inheritStdio,
+    environment: {
+      ...Platform.environment,
+      'PROJECT_ROOT': Directory.current.path,
+    },
   );
   exit(await proc.exitCode);
 }

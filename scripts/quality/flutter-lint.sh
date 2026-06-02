@@ -95,7 +95,8 @@ PYEOF
 
 if [[ ${#PACKAGES[@]} -eq 0 ]]; then
   echo -e "${YELLOW}⚠ Lint — no Flutter packages found under $PROJECT_ROOT${NC}"
-  write_lint_json "true"
+  mkdir -p "$PROJECT_ROOT/reports/lint"
+  echo '{"errors":0,"warnings":0,"info":0,"mode":"strict","passed":true,"elapsed":0,"files":[]}' > "$PROJECT_ROOT/reports/lint/lint-results.json"
   exit 0
 fi
 
