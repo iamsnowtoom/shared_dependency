@@ -46,7 +46,7 @@ while IFS= read -r pubspec_dir; do
   elapsed=$(( $(date +%s) - t0 ))
 
   passed="$(echo "$test_output" | grep -oE '[0-9]+ passed' | grep -oE '[0-9]+' | tail -1 || echo "$(echo "$test_output" | grep -oE '\+[0-9]+' | tail -1 | tr -d '+' || true)")"
-  failed="$(echo "$test_output" | grep -oE '[0-9]+ failed' | grep -oE '[0-9]+' | tail -1 || true)"
+  failed="$(echo "$test_output" | grep -oE '\+[0-9]+ -[0-9]+:' | tail -1 | grep -oE '\-[0-9]+' | tr -d '-' || true)"
 
   if echo "$test_output" | grep -qE "All tests passed|[0-9]+ passed" && [[ -z "$failed" ]]; then
     echo -e "${GREEN}✓  ${pkg_name}  ${passed:-?} passed  (${elapsed}s)${NC}"
@@ -62,44 +62,40 @@ while IFS= read -r pubspec_dir; do
     echo -e "${RED}✗  ${pkg_name}  ${failed:-?} failed  (${elapsed}s)${NC}"
     OVERALL_FAILED=true
 
-    # Show failed test details
-    python3 - "$test_output" "$pubspec_dir" <<'PYEOF'
+    # Show failed test details from 'Failing Tests:' section
+    python3 - "$test_output" <<'PYEOF'
 import sys, re
-
 output = sys.argv[1]
-pkg_dir = sys.argv[2]
+RED='\033[0;31m'; DIM='\033[2m'; CYAN='\033[0;36m'; NC='\033[0m'
 
-RED = '\033[0;31m'; DIM = '\033[2m'; NC = '\033[0m'; CYAN = '\033[0;36m'
+# Extract error details per test: look for '(FAILED)' lines
+failed_pat = re.compile(r'^(.+?)\s+\S+\s+\(FAILED\)', re.MULTILINE)
+file_pat = re.compile(r'(test/[\w/.-]+_test\.dart)\s+(\d+):(\d+)')
+err_pat = re.compile(r'Expected:|Error:|Exception:|package:matcher')
 
-# Parse flutter test expanded output
-# Failed test: line like "XX:XX +N -M: test description [E]"
-test_pat = re.compile(r'^\d+:\d+\s+\+\d+\s+-\d+:\s+(.+?)\s+\[E\]', re.MULTILINE)
-# File ref pattern: "path/file_test.dart line:col"
-file_pat = re.compile(r'([\w/.-]+_test\.dart):?(\d+)')
-# Error message: line after [E] block
-err_pat = re.compile(r'^\s+(Expected:|Error:|Exception:|Failure:.*)', re.MULTILINE)
-
-for m in test_pat.finditer(output):
-    test_name = m.group(1).strip()
-    block_start = m.end()
-    block_end = output.find('\n\n', block_start)
-    block = output[block_start:block_end] if block_end > 0 else output[block_start:block_start+500]
-
-    file_ref = ""
-    fm = file_pat.search(block)
-    if fm:
-        file_ref = fm.group(0)
-
-    err_line = ""
-    em = err_pat.search(block)
-    if em:
-        err_line = em.group(1).strip()[:80]
-
-    print(f"   {RED}✗{NC} {test_name}")
-    if file_ref:
-        print(f"     {DIM}{file_ref}{NC}")
-    if err_line:
-        print(f"     {CYAN}{err_line}{NC}")
+# Also parse 'Failing Tests:' section
+failing_section = re.search(r'Failing Tests:(.*)', output, re.DOTALL)
+if failing_section:
+    for line in failing_section.group(1).splitlines():
+        m = re.match(r'\s+-\s+\[FAILED\]\s+(.*)', line)
+        if m:
+            test_name = m.group(1).strip()
+            # find error for this test in the output before (FAILED)
+            test_block_m = re.search(re.escape(test_name) + r'.+?\(FAILED\)', output, re.DOTALL)
+            err = ''
+            file_ref = ''
+            if test_block_m:
+                block = output[:test_block_m.start()]
+                # get last error block before this test
+                blocks = block.split('\n\n')
+                last = blocks[-2] if len(blocks) >= 2 else ''
+                fm = file_pat.search(last)
+                if fm: file_ref = f'{fm.group(1)}:{fm.group(2)}'
+                em = re.search(r"Expected: (.+)", last)
+                if em: err = f"Expected: {em.group(1)[:60]}"
+            print(f'   {RED}✗{NC} {test_name}')
+            if file_ref: print(f'     {DIM}{file_ref}{NC}')
+            if err: print(f'     {CYAN}{err}{NC}')
 PYEOF
   fi
 done < <(find "$PROJECT_ROOT" -name "pubspec.yaml" \
