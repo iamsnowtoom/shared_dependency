@@ -1,0 +1,8 @@
+# OMC agent state (local only)
+.omc/
+
+# Dart/Flutter
+.dart_tool/
+.packages
+build/
+pubspec.lock
