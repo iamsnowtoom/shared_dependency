@@ -77,9 +77,9 @@ checkCoverageThreshold() {
 }
 
 ## Generate coverage report
-PROJECT_ROOT_PATH=$1
-PACKAGE_PATH=$2
-PACKAGE_NAME=$3
+PROJECT_ROOT_PATH="${MELOS_ROOT_PATH:-$1}"
+PACKAGE_PATH="${MELOS_PACKAGE_PATH:-$2}"
+PACKAGE_NAME="${MELOS_PACKAGE_NAME:-$3}"
 
 if [ ! -e "$PROJECT_ROOT_PATH"/reports/coverage/ ]; then
   mkdir -p "$PROJECT_ROOT_PATH"/reports/coverage/
