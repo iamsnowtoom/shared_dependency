@@ -1,4 +1,4 @@
-# local-quality.sh
+# local-sonar.sh
 
 Self-contained local quality gate for Flutter monorepos. Runs lint, tests, and a full SonarQube scan — no Docker, no Homebrew, no admin access required.
 
@@ -17,12 +17,12 @@ No other external tools needed. SonarQube, sonar-scanner, and the sonar-flutter 
 ## Quick Start
 
 ```bash
-# Copy local-quality.sh and flutter-lint.sh into your project
-cp local-quality.sh scripts/quality/
-cp flutter-lint.sh  scripts/quality/
+# Copy local-sonar.sh and flutter-analyze.sh into your project
+cp local-sonar.sh scripts/quality/
+cp flutter-analyze.sh  scripts/quality/
 
 # Run
-bash scripts/quality/local-quality.sh
+bash scripts/quality/local-sonar.sh
 ```
 
 First run downloads SonarQube + sonar-scanner (~300 MB) and initialises Elasticsearch indices (~1–5 min). Subsequent runs are fast (~1 min).
@@ -37,9 +37,8 @@ First run downloads SonarQube + sonar-scanner (~300 MB) and initialises Elastics
 | `--stop-server` | Alias for `--stop-sonar-local` |
 | `--clear-cache` | Clear state only (data, temp, tokens) — keeps JDK, zips, extracted tools. Next run skips download. |
 | `--clear-cache-all` | Delete entire cache including downloads. Next run re-downloads everything. |
-| `--dev` / `--sit` | Lint mode: only errors fail lint (warnings and info are tolerated) |
-| `-d, --dup-threshold N` | Max duplication % (default: 1) |
-| `-c, --cov-threshold N` | Min coverage % (default: 95) |
+| `-d, --dup-threshold N` | Max duplication % (default: 6) |
+| `-c, --cov-threshold N` | Min coverage % (default: 80) |
 | `--focus AREAS` | Focus gate on `coverage,duplication,smell` only |
 | `--minimal-focus` | Shorthand for `--focus coverage,duplication,smell` |
 | `--focus-minimal` | Alias for `--minimal-focus` |
@@ -84,8 +83,8 @@ First run downloads SonarQube + sonar-scanner (~300 MB) and initialises Elastics
 The gate passes when **all** of the following hold:
 
 1. SonarQube quality gate = PASSED
-2. Coverage ≥ threshold (default 95%)
-3. Duplication ≤ threshold (default 1%)
+2. Coverage ≥ threshold (default 80%)
+3. Duplication ≤ threshold (default 6%)
 4. Lint = no errors (strict mode)
 
 With `--focus coverage,duplication,smell`, the gate is computed locally from those three thresholds only — SonarQube's configured gate is bypassed.
@@ -111,7 +110,7 @@ On first run (or after `--clear-cache`), SonarQube initialises Elasticsearch ind
 
 ## Embedded Components
 
-`local-quality.sh` is a self-contained file (~10 MB) that embeds:
+`local-sonar.sh` is a self-contained file (~10 MB) that embeds:
 
 | Component | Description |
 |-----------|-------------|
@@ -125,7 +124,7 @@ To rebuild after modifying internal scripts:
 
 ```bash
 # Requires the .internal/ source directory (not distributed)
-python3 scripts/quality/build-local-quality.sh
+python3 scripts/quality/build-local-sonar.sh
 ```
 
 ## Troubleshooting
@@ -137,5 +136,5 @@ python3 scripts/quality/build-local-quality.sh
 | `high disk watermark exceeded` | Disk >90% full | Free disk space, or disk threshold is auto-disabled in sonar.properties |
 | `Address already in use` (port) | Port 19102 or 19103 occupied | Set `SONAR_LOCAL_PORT` to a free port |
 | `SIGSEGV` / exit code 132 | Homebrew JDK ARM64 bug | Let the script auto-download Temurin (first run) or set `PORTABLE_JAVA_HOME` |
-| Scan stuck at SonarQube spinner | PID file or stale process | Run `bash local-quality.sh --stop-sonar-local` then retry |
+| Scan stuck at SonarQube spinner | PID file or stale process | Run `bash local-sonar.sh --stop-sonar-local` then retry |
 | Quality Gate always fails | Coverage/dup thresholds | Use `--cov-threshold 70 --dup-threshold 10` or `--minimal-focus` |
