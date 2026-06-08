@@ -12,7 +12,7 @@ checkCommand() {
 runVeryGoodTest() {
   cd "$PACKAGE_PATH" || exit 1
   
-  TEST_OUTPUT=$(very_good test --coverage --reporter=json 2>&1)
+  TEST_OUTPUT=$(very_good test --coverage 2>&1)
   TEST_RESULT=$?
 
   DEFAULT_LCOV="coverage/lcov.info"
