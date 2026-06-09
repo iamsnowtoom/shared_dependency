@@ -18,6 +18,11 @@ void main(List<String> args) async {
     exit(1);
   }
 
+  final reportsDir = Directory('${Directory.current.path}/reports');
+  if (reportsDir.existsSync()) {
+    reportsDir.deleteSync(recursive: true);
+  }
+
   final proc = await Process.start(
     'bash', [sonarSh, ...args],
     mode: ProcessStartMode.inheritStdio,
