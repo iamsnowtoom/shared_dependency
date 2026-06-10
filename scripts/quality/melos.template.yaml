@@ -1,0 +1,44 @@
+name: {{NAME}}
+packages:
+{{PACKAGES}}
+scripts:
+  test:with-sonar:
+    run: dart run shared_dependency:local_sonar
+    exec:
+      concurrency: 1
+    packageFilters:
+      ignore:
+        - app
+    description: "Run full SonarQube quality gate (select a package)"
+  analyze:
+    run: dart run shared_dependency:flutter_analyze
+    exec:
+      concurrency: 1
+    packageFilters:
+      ignore:
+        - app
+    description: "Run analyze only (strict — fail on any issue, select a package)"
+  analyze:all:
+    run: melos run analyze --no-select
+    description: "Run analyze on all packages (strict — fail on any issue)"
+  test:with-lcov-coverage:
+    run: dart run shared_dependency:test_with_coverage
+    exec:
+      concurrency: 5
+    packageFilters:
+      dirExists:
+        - test
+      ignore:
+        - app
+    description: Run Flutter tests and publish local lcov coverage for a specific package
+  test:combine-coverage:
+    run: dart run shared_dependency:combine_coverage "$MELOS_ROOT_PATH"
+    description: Combine all package lcov files into a single combined_lcov.info
+  test:with-lcov-coverage:all:
+    run: |
+      melos run test:with-lcov-coverage --no-select && \
+      melos run test:combine-coverage
+    description: Run Flutter tests for all packages and generate a combined lcov coverage report
+  sync:melos:
+    run: flutter pub upgrade shared_dependency && dart run shared_dependency:sync_melos
+    description: "Re-generate melos.yaml from the shared_dependency template"
