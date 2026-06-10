@@ -57,8 +57,8 @@ PYEOF
 
 checkCoverageThreshold() {
   local lf lh coverage
-  lf=$(grep "^LF:" "$PACKAGE_LCOV_INFO_PATH" | grep -o '[0-9]*')
-  lh=$(grep "^LH:" "$PACKAGE_LCOV_INFO_PATH" | grep -o '[0-9]*')
+  lf=$(awk -F: '/^LF:/{s+=$2} END{print s+0}' "$PACKAGE_LCOV_INFO_PATH")
+  lh=$(awk -F: '/^LH:/{s+=$2} END{print s+0}' "$PACKAGE_LCOV_INFO_PATH")
 
   if [ -z "$lf" ] || [ "$lf" -eq 0 ]; then
     echo "⚠️  No coverage data found"
