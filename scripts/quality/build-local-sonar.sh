@@ -590,7 +590,7 @@ set -e
 _spin_stop
 
 # Read gate result and metrics from summary.json
-SUMMARY_JSON="$PROJECT_ROOT/reports/quality/summary.json"
+SUMMARY_JSON="${QUALITY_SUMMARY_JSON:-$PROJECT_ROOT/reports/quality/summary.json}"
 REPORT_HTML="${QUALITY_REPORT_HTML:-$PROJECT_ROOT/reports/quality/quality-report.html}"
 GATE_EXIT=0
 
