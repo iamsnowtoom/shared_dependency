@@ -112,7 +112,7 @@ done
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-REPORT_HTML="$PROJECT_ROOT/reports/quality/quality-report.html"
+REPORT_HTML="${QUALITY_REPORT_HTML:-$PROJECT_ROOT/reports/quality/quality-report.html}"
 
 # Cache dir (shared with embedded scripts)
 CACHE_DIR="${TOP_FLUTTER_QUALITY_CACHE:-$HOME/.cache/top-flutter-quality}"
@@ -591,7 +591,7 @@ _spin_stop
 
 # Read gate result and metrics from summary.json
 SUMMARY_JSON="$PROJECT_ROOT/reports/quality/summary.json"
-REPORT_HTML="$PROJECT_ROOT/reports/quality/quality-report.html"
+REPORT_HTML="${QUALITY_REPORT_HTML:-$PROJECT_ROOT/reports/quality/quality-report.html}"
 GATE_EXIT=0
 
 if [[ -f "$SUMMARY_JSON" ]]; then
