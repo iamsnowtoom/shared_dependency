@@ -18,12 +18,23 @@ void main(List<String> args) async {
     exit(1);
   }
 
+  // When run via melos exec, analyze results go to
+  // <melos root>/reports/<package>/analyze/ instead of inside the package.
+  final melosRoot = Platform.environment['MELOS_ROOT_PATH'];
+  String? pkgReportDir;
+  if (melosRoot != null && melosRoot.isNotEmpty) {
+    final packageName = Platform.environment['MELOS_PACKAGE_NAME'] ??
+        Directory.current.uri.pathSegments.lastWhere((s) => s.isNotEmpty);
+    pkgReportDir = '$melosRoot/reports/$packageName';
+  }
+
   final proc = await Process.start(
     'bash', [analyzeSh, ...args],
     mode: ProcessStartMode.inheritStdio,
     environment: {
       ...Platform.environment,
       'PROJECT_ROOT': Directory.current.path,
+      if (pkgReportDir != null) 'QUALITY_PKG_REPORT_DIR': pkgReportDir,
     },
   );
   exit(await proc.exitCode);

@@ -112,7 +112,18 @@ done
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-REPORT_HTML="${QUALITY_REPORT_HTML:-$PROJECT_ROOT/reports/quality/quality-report.html}"
+# Per-package report layout at the melos root (QUALITY_PKG_REPORT_DIR set by bin wrappers).
+if [[ -n "${QUALITY_PKG_REPORT_DIR:-}" ]]; then
+  RPT_SONARQUBE_DIR="$QUALITY_PKG_REPORT_DIR/sonarqube"
+  RPT_COVERAGE_DIR="$QUALITY_PKG_REPORT_DIR/coverage"
+  RPT_ANALYZE_DIR="$QUALITY_PKG_REPORT_DIR/analyze"
+  REPORT_HTML="$RPT_SONARQUBE_DIR/sonarqube-report.html"
+else
+  RPT_SONARQUBE_DIR="$PROJECT_ROOT/reports/quality"
+  RPT_COVERAGE_DIR="$PROJECT_ROOT/reports/coverage"
+  RPT_ANALYZE_DIR="$PROJECT_ROOT/reports/analyze"
+  REPORT_HTML="$RPT_SONARQUBE_DIR/quality-report.html"
+fi
 
 # Cache dir (shared with embedded scripts)
 CACHE_DIR="${TOP_FLUTTER_QUALITY_CACHE:-$HOME/.cache/top-flutter-quality}"
@@ -490,8 +501,8 @@ echo -e "${CYAN}${PROJECT_NAME}  |  ${RUN_DATE}${NC}"
 echo -e "${CYAN}────────────────────────────────────────────────────${NC}"
 
 # Clean previous reports (silent)
-rm -rf "$PROJECT_ROOT/reports/quality" "$PROJECT_ROOT/reports/coverage" "$PROJECT_ROOT/reports/lint"
-mkdir -p "$PROJECT_ROOT/reports/quality" "$PROJECT_ROOT/reports/coverage" "$PROJECT_ROOT/reports/lint"
+rm -rf "$RPT_SONARQUBE_DIR" "$RPT_COVERAGE_DIR" "$RPT_ANALYZE_DIR"
+mkdir -p "$RPT_SONARQUBE_DIR" "$RPT_COVERAGE_DIR" "$RPT_ANALYZE_DIR"
 
 # ── Spinner helpers ───────────────────────────────────────────────────────────
 _SP='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'; _SPINNER_PID=""
@@ -541,8 +552,8 @@ while IFS= read -r pubspec_dir; do
     echo -e "${GREEN}▸ Tests   ✓  ${pkg_name}: ${passed_count} passed${NC}"
     LCOV="$pubspec_dir/coverage/lcov.info"
     if [[ -f "$LCOV" ]]; then
-      mkdir -p "$PROJECT_ROOT/reports/coverage"
-      cp "$LCOV" "$PROJECT_ROOT/reports/coverage/lcov.info"
+      mkdir -p "$RPT_COVERAGE_DIR"
+      cp "$LCOV" "$RPT_COVERAGE_DIR/lcov.info"
       COVERAGE_FOUND=true
     fi
   elif echo "$test_output" | grep -qE "No tests ran|no tests"; then
@@ -575,8 +586,8 @@ _sonar_status=$(curl -fsS "http://localhost:${_sonar_port}/api/system/status" 2>
 if [[ "$_sonar_status" != "UP" ]]; then
   lsof -ti :"$_sonar_port" | xargs kill -9 2>/dev/null || true
 fi
-SONAR_LOG="$PROJECT_ROOT/reports/quality/sonar.log"
-mkdir -p "$PROJECT_ROOT/reports/quality"
+SONAR_LOG="$RPT_SONARQUBE_DIR/sonar.log"
+mkdir -p "$RPT_SONARQUBE_DIR"
 _spin_start "SonarQube"
 set +e
 if [[ ${#REMAINING_ARGS[@]} -gt 0 ]]; then
@@ -590,8 +601,7 @@ set -e
 _spin_stop
 
 # Read gate result and metrics from summary.json
-SUMMARY_JSON="${QUALITY_SUMMARY_JSON:-$PROJECT_ROOT/reports/quality/summary.json}"
-REPORT_HTML="${QUALITY_REPORT_HTML:-$PROJECT_ROOT/reports/quality/quality-report.html}"
+SUMMARY_JSON="$RPT_SONARQUBE_DIR/summary.json"
 GATE_EXIT=0
 
 if [[ -f "$SUMMARY_JSON" ]]; then

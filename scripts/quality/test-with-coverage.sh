@@ -81,23 +81,13 @@ PROJECT_ROOT_PATH="${MELOS_ROOT_PATH:-$1}"
 PACKAGE_PATH="${MELOS_PACKAGE_PATH:-$2}"
 PACKAGE_NAME="${MELOS_PACKAGE_NAME:-$3}"
 
-if [ ! -e "$PROJECT_ROOT_PATH"/reports/coverage/ ]; then
-  mkdir -p "$PROJECT_ROOT_PATH"/reports/coverage/
-  echo "🚀::Create coverage directory ✅  "
-else
-  echo "🚀::Already has coverage directory ✅  "
-fi
+PKG_REPORT_DIR="$PROJECT_ROOT_PATH/reports/$PACKAGE_NAME"
+mkdir -p "$PKG_REPORT_DIR/coverage" "$PKG_REPORT_DIR/test"
+echo "🚀::Report directory ready: $PKG_REPORT_DIR ✅  "
 
-if [ ! -e "$PROJECT_ROOT_PATH"/reports/test/ ]; then
-  mkdir -p "$PROJECT_ROOT_PATH"/reports/test/
-  echo "🚀::Create test directory ✅  "
-else
-  echo "🚀::Already has test directory ✅  "
-fi
-
-PACKAGE_LCOV_INFO_PATH=$PROJECT_ROOT_PATH/reports/coverage/lcov_$PACKAGE_NAME.info
-PACKAGE_TEST_REPORT_PATH=$PROJECT_ROOT_PATH/reports/test/${PACKAGE_NAME}_test_report.json
-PACKAGE_TEST_FAILED_LOG=$PROJECT_ROOT_PATH/reports/test/${PACKAGE_NAME}_test_failed_report.json
+PACKAGE_LCOV_INFO_PATH=$PKG_REPORT_DIR/coverage/lcov.info
+PACKAGE_TEST_REPORT_PATH=$PKG_REPORT_DIR/test/test_report.json
+PACKAGE_TEST_FAILED_LOG=$PKG_REPORT_DIR/test/test_failed_report.json
 
 echo "PACKAGE_LCOV_INFO_PATH: " "$PACKAGE_LCOV_INFO_PATH"
 echo "PACKAGE_TEST_REPORT_PATH: " "$PACKAGE_TEST_REPORT_PATH"

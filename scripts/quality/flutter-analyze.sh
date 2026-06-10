@@ -11,6 +11,9 @@ set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 PROJECT_ROOT="${PROJECT_ROOT:-${QUALITY_PROJECT_ROOT:-$(cd "$SCRIPT_DIR/../.." && pwd)}}"
+# Per-package report layout at the melos root (set by bin wrappers); falls back in-package.
+ANALYZE_OUT_DIR="${QUALITY_PKG_REPORT_DIR:+$QUALITY_PKG_REPORT_DIR/analyze}"
+ANALYZE_OUT_DIR="${ANALYZE_OUT_DIR:-$PROJECT_ROOT/reports/analyze}"
 
 GREEN='\033[0;32m'
 RED='\033[0;31m'
@@ -100,8 +103,8 @@ PYEOF
 
 if [[ ${#PACKAGES[@]} -eq 0 ]]; then
   echo -e "${YELLOW}⚠ Analyze — no Flutter packages found under $PROJECT_ROOT${NC}"
-  mkdir -p "$PROJECT_ROOT/reports/analyze"
-  echo '{"errors":0,"warnings":0,"info":0,"mode":"strict","passed":true,"elapsed":0,"files":[]}' > "$PROJECT_ROOT/reports/analyze/analyze-results.json"
+  mkdir -p "$ANALYZE_OUT_DIR"
+  echo '{"errors":0,"warnings":0,"info":0,"mode":"strict","passed":true,"elapsed":0,"files":[]}' > "$ANALYZE_OUT_DIR/analyze-results.json"
   exit 0
 fi
 
@@ -123,13 +126,13 @@ INFO_COUNT=$(echo "$RESULT" | grep -cE "^\s*info\s*•" || true)
 write_analyze_json() {
   local passed_bool
   [[ "$1" == "true" ]] && passed_bool="true" || passed_bool="false"
-  mkdir -p "$PROJECT_ROOT/reports/analyze"
-  local tmp_result="$PROJECT_ROOT/reports/analyze/.result.tmp"
+  mkdir -p "$ANALYZE_OUT_DIR"
+  local tmp_result="$ANALYZE_OUT_DIR/.result.tmp"
   trap "rm -f '$tmp_result'" INT TERM
   printf '%s' "$RESULT" > "$tmp_result"
   python3 - "$tmp_result" "$PROJECT_ROOT" "${MODE:-strict}" "$passed_bool" \
       "$ERROR_COUNT" "$WARNING_COUNT" "$INFO_COUNT" "$ELAPSED" \
-      > "$PROJECT_ROOT/reports/analyze/analyze-results.json" <<'PYEOF'
+      > "$ANALYZE_OUT_DIR/analyze-results.json" <<'PYEOF'
 import json, re, sys
 
 result_file, project_root, mode, passed_s, errors_s, warnings_s, info_s, elapsed_s = sys.argv[1:]

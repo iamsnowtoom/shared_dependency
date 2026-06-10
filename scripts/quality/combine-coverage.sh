@@ -3,14 +3,14 @@
 PROJECT_ROOT_PATH="${MELOS_ROOT_PATH:-$1}"
 COVERAGE_DIR="$PROJECT_ROOT_PATH/reports/coverage"
 
+mkdir -p "$COVERAGE_DIR"
 cd "$COVERAGE_DIR" || exit 1
 
 declare -a LCOV_ARGS=()
-while IFS= read -r FILENAME; do
-  [[ "$FILENAME" == combined_lcov.info || "$FILENAME" == clean_combined_lcov.info ]] && continue
-  [[ "$FILENAME" == *.info ]] || continue
-  LCOV_ARGS+=(-a "$FILENAME")
-done < <(ls .)
+for LCOV_FILE in "$PROJECT_ROOT_PATH"/reports/*/coverage/lcov.info; do
+  [[ -f "$LCOV_FILE" ]] || continue
+  LCOV_ARGS+=(-a "$LCOV_FILE")
+done
 
 echo "LCOV_INPUT_FILES: ${LCOV_ARGS[*]}"
 
