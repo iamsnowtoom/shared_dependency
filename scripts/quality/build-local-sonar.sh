@@ -550,12 +550,20 @@ while IFS= read -r pubspec_dir; do
   else
     echo -e "${RED}▸ Tests   ✗  ${pkg_name}: ${failed_count:-?} failed${NC}"
   fi
-done < <(find "$PROJECT_ROOT" -name "pubspec.yaml" \
-  -not -type l \
-  -not -path "*/.dart_tool/*" -not -path "*/build/*" -not -path "*/.git/*" \
-  -not -path "$PROJECT_ROOT/pubspec.yaml" \
-  -not -path "$PROJECT_ROOT/app/*" \
-  -exec dirname {} \; | sort)
+done < <(
+  _pkg_dirs="$(find "$PROJECT_ROOT" -name "pubspec.yaml" \
+    -not -type l \
+    -not -path "*/.dart_tool/*" -not -path "*/build/*" -not -path "*/.git/*" \
+    -not -path "$PROJECT_ROOT/pubspec.yaml" \
+    -not -path "$PROJECT_ROOT/app/*" \
+    -exec dirname {} \; | sort)"
+  if [[ -n "$_pkg_dirs" ]]; then
+    printf '%s\n' "$_pkg_dirs"
+  elif [[ -f "$PROJECT_ROOT/pubspec.yaml" ]]; then
+    # Single-package mode: PROJECT_ROOT itself is the package
+    printf '%s\n' "$PROJECT_ROOT"
+  fi
+)
 if [[ "$COVERAGE_FOUND" == false ]]; then
   echo -e "${YELLOW}▸ Tests   —  no coverage data generated${NC}"
 fi

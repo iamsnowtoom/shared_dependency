@@ -55,6 +55,11 @@ done < <(find "$PROJECT_ROOT" -name "pubspec.yaml" \
     -not -path "$PROJECT_ROOT/app/*" \
     | sort)
 
+# Single-package mode: PROJECT_ROOT itself is a package (no sub-packages found)
+if [[ ${#PACKAGES[@]} -eq 0 && -f "$PROJECT_ROOT/pubspec.yaml" ]]; then
+  PACKAGES=("$PROJECT_ROOT")
+fi
+
 _format_pkg_result() {
   local pkg_name="$1"
   local output="$2"
