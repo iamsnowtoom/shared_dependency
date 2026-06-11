@@ -108,13 +108,18 @@ else
   echo "✅  All Tests Passed! ✅  "
 fi
 
-escapedPath="$(echo "$PACKAGE_PATH" | sed 's/\//\\\//g')"
-
-# Requires gsed on MacOS machines because otherwise sed is not the same...
-if [[ "$OSTYPE" =~ ^darwin ]]; then
-  gsed -i "s/^SF:lib/SF:$escapedPath\/lib/g" "$PACKAGE_LCOV_INFO_PATH"
-else
-  sed -i "s/^SF:lib/SF:$escapedPath\/lib/g" "$PACKAGE_LCOV_INFO_PATH"
-fi
+# Rewrite SF:lib/... to absolute package paths. python3 keeps a single
+# cross-platform code path (BSD vs GNU sed differ on -i) and needs no escaping.
+PKG_PATH="$PACKAGE_PATH" LCOV_FILE="$PACKAGE_LCOV_INFO_PATH" python3 - <<'PYEOF'
+import os
+path, pkg = os.environ['LCOV_FILE'], os.environ['PKG_PATH']
+with open(path) as f:
+    lines = f.readlines()
+with open(path, 'w') as f:
+    f.writelines(
+        f"SF:{pkg}/lib{l[len('SF:lib'):]}" if l.startswith('SF:lib') else l
+        for l in lines
+    )
+PYEOF
 
 checkCoverageThreshold
