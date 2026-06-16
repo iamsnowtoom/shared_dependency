@@ -42,6 +42,9 @@ scripts:
   clean:all:
     run: melos exec --concurrency 5 -- flutter clean
     description: "Run flutter clean on all packages"
+  pub_get:
+    run: melos exec --concurrency 5 -- flutter pub get
+    description: "Run flutter pub get on all packages"
   sync:melos:
     run: flutter pub upgrade shared_dependency && dart run shared_dependency:sync_melos
     description: "Re-generate melos.yaml from the shared_dependency template"
