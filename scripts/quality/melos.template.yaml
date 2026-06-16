@@ -39,6 +39,9 @@ scripts:
       melos run test:with-lcov-coverage --no-select && \
       melos run test:combine-coverage
     description: Run Flutter tests for all packages and generate a combined lcov coverage report
+  clean:all:
+    run: melos exec --concurrency 5 -- flutter clean
+    description: "Run flutter clean on all packages"
   sync:melos:
     run: flutter pub upgrade shared_dependency && dart run shared_dependency:sync_melos
     description: "Re-generate melos.yaml from the shared_dependency template"
