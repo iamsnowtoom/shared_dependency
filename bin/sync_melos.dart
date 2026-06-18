@@ -9,6 +9,10 @@ import 'package:yaml_edit/yaml_edit.dart';
 /// <tool>:...` to work, so we inject it into every package's dev_dependencies.
 const _tool = 'shared_dependency';
 
+/// Packages excluded from gate scripts (mirrors the template's `ignore: app`) —
+/// they never run `dart run <tool>:...`, so they don't need the dependency.
+const _ignoredPackages = {'app'};
+
 /// Generates melos.yaml at the current directory (workspace root) from the
 /// template in shared_dependency, then locks the file (chmod 444 + chflags
 /// uchg on macOS) so it can only change through regeneration. Also injects the
@@ -100,6 +104,7 @@ void _injectToolDependency(Directory root, List<String> packages) {
 
   final injected = <String>[];
   for (final pkg in packages) {
+    if (_ignoredPackages.contains(pkg)) continue;
     final pf = File('${root.path}/$pkg/pubspec.yaml');
     if (!pf.existsSync()) continue;
     final text = pf.readAsStringSync();
