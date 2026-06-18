@@ -1,6 +1,8 @@
 name: {{NAME}}
 packages:
 {{PACKAGES}}
+ignore:
+  - {{NAME}}
 scripts:
   test:with-sonar:
     run: dart run shared_dependency:local_sonar
