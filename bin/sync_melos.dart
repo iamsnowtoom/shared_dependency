@@ -1,23 +1,9 @@
 import 'dart:io';
 import 'dart:isolate';
 
-import 'package:yaml/yaml.dart';
-import 'package:yaml_edit/yaml_edit.dart';
-
-/// The shared tool package name — provides local_sonar / flutter_analyze /
-/// etc. Must be resolvable inside each package for `melos exec -- dart run
-/// <tool>:...` to work, so we inject it into every package's dev_dependencies.
-const _tool = 'shared_dependency';
-
-/// Packages excluded from gate scripts (mirrors the template's `ignore: app`) —
-/// they never run `dart run <tool>:...`, so they don't need the dependency.
-const _ignoredPackages = {'app'};
-
 /// Generates melos.yaml at the current directory (workspace root) from the
 /// template in shared_dependency, then locks the file (chmod 444 + chflags
-/// uchg on macOS) so it can only change through regeneration. Also injects the
-/// shared tool into each package's dev_dependencies so per-package gate scripts
-/// (run via `melos exec`) can resolve it.
+/// uchg on macOS) so it can only change through regeneration.
 Future<void> main(List<String> args) async {
   final packageUri = await Isolate.resolvePackageUri(
     Uri.parse('package:shared_dependency/'),
@@ -75,77 +61,6 @@ Future<void> main(List<String> args) async {
   _lock(out);
   stdout.writeln(
       '✓ melos.yaml generated (${packages.length} packages: ${packages.join(', ')}) and locked');
-
-  _injectToolDependency(root, packages);
-}
-
-/// Ensures every package declares the shared tool as a dev_dependency, copying
-/// the exact spec the workspace root uses. Idempotent — packages that already
-/// declare it (in dependencies or dev_dependencies) are left untouched.
-void _injectToolDependency(Directory root, List<String> packages) {
-  final rootPubspec = File('${root.path}/pubspec.yaml');
-  if (!rootPubspec.existsSync()) return;
-
-  final rootYaml = loadYaml(rootPubspec.readAsStringSync());
-  dynamic spec;
-  for (final section in const ['dependencies', 'dev_dependencies']) {
-    final m = (rootYaml is Map) ? rootYaml[section] : null;
-    if (m is Map && m.containsKey(_tool)) {
-      spec = m[_tool];
-      break;
-    }
-  }
-  if (spec == null) {
-    stderr.writeln(
-        '⚠ $_tool not declared in root pubspec — skipping per-package injection');
-    return;
-  }
-  final plainSpec = _toPlain(spec);
-
-  final injected = <String>[];
-  for (final pkg in packages) {
-    if (_ignoredPackages.contains(pkg)) continue;
-    final pf = File('${root.path}/$pkg/pubspec.yaml');
-    if (!pf.existsSync()) continue;
-    final text = pf.readAsStringSync();
-    final doc = loadYaml(text);
-
-    bool declaredIn(String section) {
-      final m = (doc is Map) ? doc[section] : null;
-      return m is Map && m.containsKey(_tool);
-    }
-
-    if (declaredIn('dependencies') || declaredIn('dev_dependencies')) continue;
-
-    final editor = YamlEditor(text);
-    final hasDevSection = (doc is Map) && doc['dev_dependencies'] is Map;
-    if (hasDevSection) {
-      editor.update(['dev_dependencies', _tool], plainSpec);
-    } else {
-      editor.update(['dev_dependencies'], {_tool: plainSpec});
-    }
-    pf.writeAsStringSync(editor.toString());
-    injected.add(pkg);
-  }
-
-  if (injected.isNotEmpty) {
-    stdout.writeln(
-        '✓ injected $_tool dev_dependency into: ${injected.join(', ')}');
-    stdout.writeln(
-        '  → run `melos bootstrap` (or flutter pub get) to resolve');
-  }
-}
-
-/// Deep-convert YamlMap/YamlList nodes to plain Dart structures so yaml_edit
-/// can re-serialize them.
-dynamic _toPlain(dynamic node) {
-  if (node is YamlMap) {
-    return {for (final e in node.entries) e.key.toString(): _toPlain(e.value)};
-  }
-  if (node is YamlList) {
-    return [for (final v in node) _toPlain(v)];
-  }
-  return node;
 }
 
 void _unlock(File f) {

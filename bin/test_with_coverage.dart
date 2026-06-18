@@ -1,29 +1,28 @@
 import 'dart:io';
-import 'dart:isolate';
 
+import 'package:shared_dependency/src/workspace.dart';
+
+/// Runs Flutter tests with lcov coverage on every package that has a `test/`
+/// directory (or one, if a package name is passed), driven from the workspace
+/// root.
 void main(List<String> args) async {
-  final packageUri = await Isolate.resolvePackageUri(
-    Uri.parse('package:shared_dependency/'),
-  );
-  if (packageUri == null) {
-    stderr.writeln('Cannot resolve package:shared_dependency/');
+  final sh = scriptPath(await toolRoot(), 'test-with-coverage.sh');
+  if (!File(sh).existsSync()) {
+    stderr.writeln('test-with-coverage.sh not found at: $sh');
     exit(1);
   }
 
-  final pkgRoot = Directory.fromUri(packageUri).parent.path;
-  final testSh = '$pkgRoot/scripts/quality/test-with-coverage.sh';
-
-  if (!File(testSh).existsSync()) {
-    stderr.writeln('test-with-coverage.sh not found at: $testSh');
+  final root = Directory.current;
+  final parsed = parseArgs(args);
+  final packages = selectPackages(root, parsed.package)
+      // mirror melos `dirExists: test` — only packages with tests.
+      .where((p) => Directory('${p.path}/test').existsSync())
+      .toList();
+  if (packages.isEmpty) {
+    stderr.writeln('No packages with a test/ directory found under ${root.path}');
     exit(1);
   }
 
-  final proc = await Process.start(
-    'bash', [testSh, ...args],
-    mode: ProcessStartMode.inheritStdio,
-    environment: {
-      ...Platform.environment,
-    },
-  );
-  exit(await proc.exitCode);
+  final failed = await runPerPackage(sh, parsed.shArgs, root, packages);
+  exit(failed == 0 ? 0 : 1);
 }

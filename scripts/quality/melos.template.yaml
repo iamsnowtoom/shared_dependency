@@ -4,41 +4,28 @@ packages:
 ignore:
   - {{NAME}}
 scripts:
+  # Gate tools run ONCE from the workspace root (where shared_dependency
+  # resolves) and iterate packages themselves — no `melos exec`, so packages
+  # don't need to depend on the tool. Pass a package name to target one:
+  #   dart run shared_dependency:local_sonar <package>
   test:with-sonar:
     run: dart run shared_dependency:local_sonar
-    exec:
-      concurrency: 1
-    packageFilters:
-      ignore:
-        - app
-    description: "Run full SonarQube quality gate (select a package)"
+    description: "Run SonarQube quality gate on all packages"
   analyze:
     run: dart run shared_dependency:flutter_analyze
-    exec:
-      concurrency: 1
-    packageFilters:
-      ignore:
-        - app
-    description: "Run analyze only (strict — fail on any issue, select a package)"
+    description: "Run analyze (strict — fail on any issue) on all packages"
   analyze:all:
-    run: melos run analyze --no-select
-    description: "Run analyze on all packages (strict — fail on any issue)"
+    run: melos run analyze
+    description: "Run analyze on all packages (alias of analyze)"
   test:with-lcov-coverage:
     run: dart run shared_dependency:test_with_coverage
-    exec:
-      concurrency: 5
-    packageFilters:
-      dirExists:
-        - test
-      ignore:
-        - app
-    description: Run Flutter tests and publish local lcov coverage for a specific package
+    description: "Run Flutter tests + lcov coverage on all packages with a test/ dir"
   test:combine-coverage:
     run: dart run shared_dependency:combine_coverage "$MELOS_ROOT_PATH"
     description: Combine all package lcov files into a single combined_lcov.info
   test:with-lcov-coverage:all:
     run: |
-      melos run test:with-lcov-coverage --no-select && \
+      melos run test:with-lcov-coverage && \
       melos run test:combine-coverage
     description: Run Flutter tests for all packages and generate a combined lcov coverage report
   clean:all:
