@@ -1,33 +1,46 @@
 import 'dart:io';
+import 'dart:isolate';
 
-import 'package:shared_dependency/src/workspace.dart';
-
-/// Runs the SonarQube quality gate on every package (or one, if a package name
-/// is passed). Invoked once from the workspace root — where shared_dependency
-/// resolves — and drives local-sonar.sh per package, so packages no longer need
-/// to depend on the tool themselves.
 void main(List<String> args) async {
-  final sh = scriptPath(await toolRoot(), 'local-sonar.sh');
-  if (!File(sh).existsSync()) {
-    stderr.writeln('local-sonar.sh not found at: $sh');
-    exit(1);
-  }
-
-  final root = Directory.current;
-  final parsed = parseArgs(args);
-  final packages = selectPackages(root, parsed.package);
-  if (packages.isEmpty) {
-    stderr.writeln('No packages found under ${root.path}');
-    exit(1);
-  }
-
-  final failed = await runPerPackage(
-    sh,
-    parsed.shArgs,
-    root,
-    packages,
-    cleanLocalReports: true,
-    extraEnv: (pkg) => {'QUALITY_PROJECT_ROOT': pkg.path},
+  final packageUri = await Isolate.resolvePackageUri(
+    Uri.parse('package:shared_dependency/'),
   );
-  exit(failed == 0 ? 0 : 1);
+  if (packageUri == null) {
+    stderr.writeln('Cannot resolve package:shared_dependency/');
+    exit(1);
+  }
+
+  final pkgRoot = Directory.fromUri(packageUri).parent.path;
+  final sonarSh = '$pkgRoot/scripts/quality/local-sonar.sh';
+
+  if (!File(sonarSh).existsSync()) {
+    stderr.writeln('local-sonar.sh not found at: $sonarSh');
+    exit(1);
+  }
+
+  final reportsDir = Directory('${Directory.current.path}/reports');
+  if (reportsDir.existsSync()) {
+    reportsDir.deleteSync(recursive: true);
+  }
+
+  // When run via melos exec, all reports go to <melos root>/reports/<package>/
+  // (sonarqube/, coverage/, analyze/) instead of inside the package itself.
+  final melosRoot = Platform.environment['MELOS_ROOT_PATH'];
+  String? pkgReportDir;
+  if (melosRoot != null && melosRoot.isNotEmpty) {
+    final packageName = Platform.environment['MELOS_PACKAGE_NAME'] ??
+        Directory.current.uri.pathSegments.lastWhere((s) => s.isNotEmpty);
+    pkgReportDir = '$melosRoot/reports/$packageName';
+  }
+
+  final proc = await Process.start(
+    'bash', [sonarSh, ...args],
+    mode: ProcessStartMode.inheritStdio,
+    environment: {
+      ...Platform.environment,
+      'QUALITY_PROJECT_ROOT': Directory.current.path,
+      if (pkgReportDir != null) 'QUALITY_PKG_REPORT_DIR': pkgReportDir,
+    },
+  );
+  exit(await proc.exitCode);
 }
