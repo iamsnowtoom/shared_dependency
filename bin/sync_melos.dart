@@ -14,7 +14,16 @@ const _tool = 'shared_dependency';
 const _ignoredNames = {'app'};
 
 /// Directory names we never descend into while scanning for packages.
-const _skipDirs = {'build'};
+const _skipDirs = {
+  'build',
+  'ios',
+  'android',
+  'linux',
+  'macos',
+  'windows',
+  'web',
+  '.dart_tool',
+};
 
 /// Generates melos.yaml at the current directory (workspace root) from the
 /// template, then locks it. Discovers packages RECURSIVELY (a package is any
@@ -93,7 +102,14 @@ List<String> discoverPackages(Directory root) {
       if (dirName.startsWith('.')) continue;
       if (_skipDirs.contains(dirName)) continue;
       if (File('${e.path}/pubspec.yaml').existsSync()) {
-        found.add(_relative(root.path, e.path)); // package — do not descend
+        final pkgPath = _relative(root.path, e.path);
+        final pkgName = _basename(pkgPath);
+        // Skip ignored package names (e.g., 'app') — they cause Melos conflicts
+        if (!_ignoredNames.contains(pkgName)) {
+          found.add(pkgPath);
+          walk(e); // continue descending — nested packages are allowed
+        }
+        // For ignored packages, do NOT descend — stop here
       } else {
         walk(e); // intermediate folder — keep looking deeper
       }
